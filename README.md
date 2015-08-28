@@ -1,11 +1,1 @@
-# CB API Client for Ruby
-
-This project is intended as your ruby based client to the CB APIs.
-
-## Namespace
-
-`CBApiClient`
-
-## APIs Covered
-
-See the YAML file.
+Will need to fill this out after we have a working refactor as it all changes
