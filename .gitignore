@@ -1,0 +1,6 @@
+.bundle/
+log/*.log
+.DS_Store
+*.gem
+coverage/
+Gemfile.lock
