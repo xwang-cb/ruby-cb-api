@@ -25,11 +25,11 @@ module CB
       attr_reader :default_params, :headers, :timeout
 
       def initialize(config = {})
-        modify_base_uri(config[:uri])
+        modify_base_uri(config[:uri] || CB.configuration.uri)
         set_default_params(config[:default_params])
         set_headers(config[:headers])
         set_timeout(config[:timeout])
-        tack_on_observers(config[:observers])
+        tack_on_observers(config[:observers] || CB.configuration.observers)
       end
 
       private
@@ -55,7 +55,10 @@ module CB
       def set_default_params(params)
         @default_params ||= {}
         @default_params = shallow_symbolize_hash_keys(params) if params.is_a?(Hash)
-        raise MissingParams.new(:developerkey) unless @default_params.has_key?(:developerkey)
+        unless @default_params.has_key?(:developerkey) || CB.configuration.dev_key == CB::Config::DEV_KEY_DEFAULT
+          @default_params.merge!(developerkey: CB.configuration.dev_key)
+        end
+        fail MissingParams.new(:developerkey) unless @default_params.has_key?(:developerkey)
       end
 
       def set_headers(h)
@@ -84,21 +87,27 @@ module CB
         end
       end
 
-      def generate_api_info(name, path, options, api_caller, response, elapsed_time)
+      def generate_api_info(stage, verb, path, options, klass, response, elapsed_time)
+        api_caller = [klass.class.name, verb.upcase, path].join(';')
+        name = :"cb_#{ verb }_#{ stage }"
         CB::Models::APIInfo.new(name, path, options, api_caller, response, elapsed_time)
       end
 
       def before_request(klass, verb, path, options)
-        api_event(generate_api_info(:"cb_#{ verb }_before", path, options, klass, nil, 0.0))
+        api_event(generate_api_info('before', verb, path, options, klass, nil, 0.0))
       end
 
       def after_request(klass, verb, path, options, response, elapsed_time)
-        api_event(generate_api_info(:"cb_#{ verb }_after", path, options, klass, response, elapsed_time))
+        api_event(generate_api_info('after', verb, path, options, klass, response, elapsed_time))
       end
 
       def api_event(api_info)
         changed
         notify_observers(api_info)
+      end
+
+      def query_plus_host_site(host_site, query = {})
+        { hostsite: (host_site.nil? || host_site.empty?) ? CB.configuration.host_site : host_site }.merge(query)
       end
     end
   end

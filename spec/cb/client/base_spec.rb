@@ -61,6 +61,20 @@ module CB::Client
             expect(client.default_params).to eq(base_valid_params[:default_params])
           end
         end
+
+        context 'required key is not present but is present in CB.configuration' do
+          let(:params) { { default_params: {} } }
+          let(:config) { CB::Config.new }
+
+          before do
+            config.dev_key = 'ABC'
+            allow(CB).to receive(:configuration).and_return(config)
+          end
+
+          it 'abc' do
+            expect(client.default_params).to eq(developerkey: 'ABC')
+          end
+        end
       end
 
       context '#headers' do
@@ -113,13 +127,13 @@ module CB::Client
 
       let(:client) { FakeClient.new({ default_params: { developerkey: '123' } }) }
 
-      context 'successful request' do
-        before do
-          stub_request(:get, %r{https://api.careerbuilder.com/fake.*})
-            .to_return(status: 200, body: '{}',
-                       headers: { 'content-type' => ['application/json; charset=utf-8'] })
-        end
+      before do
+        stub_request(:get, %r{https://api.careerbuilder.com/fake.*})
+          .to_return(status: 200, body: '{}',
+                     headers: { 'content-type' => ['application/json; charset=utf-8'] })
+      end
 
+      context 'successful request' do
         it { expect(client.fake.success?).to eq(true) }
         it { expect(client.fake.parsed_response).to eq({}) }
       end
@@ -145,7 +159,31 @@ module CB::Client
         end
       end
 
-      context 'notifies observers' do
+      context 'observers' do
+        class FakeObserver
+          def update(api_call)
+          end
+        end
+
+        RSpec::Matchers.define :cb_models_apiinfo do |stage|
+          match { |actual| actual.api_call_type.to_s == "cb_get_#{ stage }" }
+          match { |actual| actual.path == '/fake' }
+          match { |actual| actual.api_caller == 'CB::Client::FakeClient;GET;/fake' }
+        end
+
+        let(:observer) { FakeObserver.new }
+        let(:config) { CB::Config.new }
+
+        before do
+          config.observers = [observer]
+          allow(CB).to receive(:configuration).and_return(config)
+        end
+
+        it 'are correctly notified' do
+          expect(observer).to receive(:update).with(cb_models_apiinfo('before'))
+          expect(observer).to receive(:update).with(cb_models_apiinfo('after'))
+          client.fake
+        end
       end
     end
   end

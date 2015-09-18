@@ -8,15 +8,14 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-require 'cb/config'
-Dir[File.join(File.dirname(__FILE__), 'cb/client/*')].each { |file| require file }
+require 'cb/client/base'
 
 module CB
-  def self.configure
-    yield configuration
-  end
-
-  def self.configuration
-    @configuration ||= CB::Config.new
+  module Client
+    class Company < CB::Client::Base
+      def find_by_did(did, host_site = '')
+        get('/Employer/CompanyDetails', query: query_plus_host_site(host_site, CompanyDID: did))
+      end
+    end
   end
 end

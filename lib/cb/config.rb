@@ -8,15 +8,23 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-require 'cb/config'
-Dir[File.join(File.dirname(__FILE__), 'cb/client/*')].each { |file| require file }
-
 module CB
-  def self.configure
-    yield configuration
-  end
+  class Config
+    attr_accessor :dev_key, :uri, :observers, :host_site
 
-  def self.configuration
-    @configuration ||= CB::Config.new
+    DEV_KEY_DEFAULT = 'ruby-cb-api'
+
+    def initialize
+      set_defaults
+    end
+
+    protected
+
+    def set_defaults
+      @dev_key              = DEV_KEY_DEFAULT  # Get a developer key at http://api.careerbuilder.com
+      @uri                  = 'https://api.careerbuilder.com'
+      @host_site            = 'US'
+      @observers            = []
+    end
   end
 end
